@@ -1,4 +1,4 @@
-# 🎉 Awesome Project Name
+# 🎉 zBruter | Best Directories Brute Force Tool!
 
 ![Project Logo](https://example.com/logo.png)
 
@@ -15,7 +15,7 @@ Welcome to **zBruter**! This project's mission is to help all penetration tester
 
 ## 🖥️ Demo
 
-![Screenshot](https://postimg.cc/GT0x2s19)
+[![Screenshot](https://i.postimg.cc/FzzWTjWb/Screenshot-from-2024-11-29-20-33-09-1.png)](https://postimg.cc/GT0x2s19)
 
 
 ## 🚀 Getting Started
