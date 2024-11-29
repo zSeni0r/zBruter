@@ -13,8 +13,8 @@ Welcome to **zBruter**! This project's mission is to help all penetration tester
 - ✅ **Feature 4:** Thread Controlling (you can set how many requests you will send)
 - ✅ **Feature 5:** All Success 200 HTTP Responses will be stored at **success_200_output.txt**
 
-## 🖥️ Demo
-<img src="Screenshot from 2024-11-29 20-33-09.png" width="675px">
+## 🖥️ Screenshot
+<img src="Screenshot from 2024-11-29 20-33-09.png" width="1000px">
 
 ## 🚀 Getting Started
 
