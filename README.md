@@ -1,6 +1,5 @@
 # 🎉 zBruter | Best Directories Brute Force Tool!
 
-![Project Logo](https://example.com/logo.png)
 
 Welcome to **zBruter**! This project's mission is to help all penetration testers to discover the hidden websites directories.
 
