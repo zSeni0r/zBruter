@@ -15,7 +15,7 @@ Welcome to **zBruter**! This project's mission is to help all penetration tester
 
 ## 🖥️ Demo
 
-[![Screenshot-from-2024-11-29-20-33-09-1.png](https://i.postimg.cc/FzzWTjWb/Screenshot-from-2024-11-29-20-33-09-1.png)](https://postimg.cc/GT0x2s19)
+[![Screenshot-from-2024-11-29-20-33-09-1.png](/Screenshot from 2024-11-29 20-33-09.png)
 ## 🚀 Getting Started
 
 To get a local copy up and running follow these simple steps:
