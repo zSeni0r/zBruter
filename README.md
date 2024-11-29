@@ -32,20 +32,12 @@ To get a local copy up and running follow these simple steps:
 
 3. **Install the dependencies**
     ```bash
-    npm install
+    pip install requests colorama
     ```
 
 4. **Run the application**
     ```bash
-    npm start
+    python3 zBruter.py
     ```
 
-## 📚 Usage
 
-### Basic Usage
-
-```javascript
-// Example code snippet
-import { AwesomeFunction } from 'awesome-module';
-
-AwesomeFunction();
