@@ -26,7 +26,7 @@ def loading_animation():
     
     for i in range(101):
         time.sleep(0.02)  # Simulate loading (2 seconds total)
-        sys.stdout.write(f"\r{Fore.YELLOW}Loading... Please Wait{i}%")
+        sys.stdout.write(f"\r{Fore.YELLOW}Loading... Please Wait {i}%")
         sys.stdout.flush()
     
     print()  # Move to the next line after loading completes
@@ -62,104 +62,123 @@ def load_proxies(file_path):
         print(Fore.YELLOW + "[*] Proxies file not found, proceeding without." + Style.RESET_ALL)
         return []
 
-# Function to perform the directory brute forcing
-def brute_force_directory(base_url, wordlist, user_agent, proxy):
-    found_urls = []
-    for directory in wordlist:
-        url = f"{base_url}/{directory}"
-        headers = {'User-Agent': user_agent}
-        try:
-            if proxy:
-                response = requests.get(url, headers=headers, proxies={"http": proxy, "https": proxy}, timeout=3)
-            else:
-                response = requests.get(url, headers=headers, timeout=3)
+# Function to fetch subdomains from VirusTotal
+def fetch_subdomains_from_virustotal(url, api_key):
+    headers = {
+        "x-apikey": api_key
+    }
+    response = requests.get(f"https://www.virustotal.com/api/v3/domains/{url}", headers=headers)
+    
+    if response.status_code == 200:
+        subdomains = response.json().get('data', [])
+        return [subdomain['id'].replace('http://', '').replace('https://', '') for subdomain in subdomains]
+    else:
+        print(Fore.RED + f"[!] Error fetching subdomains: {response.text}" + Style.RESET_ALL)
+        return []
 
-            if response.status_code == 200:
-                print(Fore.GREEN + f"[+] Found: {url}" + Style.RESET_ALL)
-                found_urls.append(url)
-            elif response.status_code == 404:
-                print(Fore.RED + f"[-] Not found: {url}" + Style.RESET_ALL)
-        except requests.ConnectionError:
-            print(Fore.RED + "[!] Connection error!" + Style.RESET_ALL)
-            continue
-        except Exception as e:
-            print(Fore.RED + f"[!] An error occurred: {e}" + Style.RESET_ALL)
+# Function for brute forcing directories
+def brute_force(url, wordlist, num_threads):
+    url_queue = Queue()
+    for word in wordlist:
+        url_queue.put(word)
+    
+    found_urls = []  # List to collect found URLs
+    lock = threading.Lock()  # Create a lock for thread-safe file writing
 
-    return found_urls
+    def worker():
+        while not url_queue.empty():
+            word = url_queue.get()
+            target_url = f"{url}/{word}"
+            try:
+                response = requests.get(target_url, timeout=5)
+                if response.status_code == 200:
+                    found_urls.append(target_url)
+                    print(Fore.GREEN + f"[+] Found: {target_url}" + Style.RESET_ALL)
+                    # Write the found URL with status code 200 to the file
+                    with lock:
+                        with open('success_200_output.txt', 'a') as success_file:
+                            success_file.write(target_url + '\n')
+                elif response.status_code == 404:
+                    pass  # Don't print for 404
+                else:
+                    print(Fore.YELLOW + f"[!] Status {response.status_code} for: {target_url}" + Style.RESET_ALL)
+            except requests.ConnectionError:
+                print(Fore.RED + "[!] Connection Error!" + Style.RESET_ALL)
+            finally:
+                url_queue.task_done()
+    
+    threads = []
+    for i in range(num_threads):
+        thread = threading.Thread(target=worker)
+        thread.start()
+        threads.append(thread)
 
-# Thread worker function
-def worker(queue, base_url, user_agent, proxy, found_urls):
-    while not queue.empty():
-        directory = queue.get()
-        urls = brute_force_directory(base_url, [directory], user_agent, proxy)
-        if urls:
-            found_urls.extend(urls)
-        queue.task_done()
+    url_queue.join()
+    
+    for thread in threads:
+        thread.join()
+
+    return found_urls  # Return the list of found URLs
 
 # Main function
 def main():
     clear_terminal()
-    loading_animation()  # Show loading animation before proceeding
+    loading_animation()
 
     print_logo()
 
     base_url = input(Fore.CYAN + "[*] Enter the Target URL (Include http/https): " + Style.RESET_ALL)
-
-    # Add default wordlists
-    default_wordlists = ['headshot.txt']
-    wordlist_file = input(Fore.CYAN + "[*] Enter the path to the directory wordlist (press Enter to use default): " + Style.RESET_ALL)
-
-    # Check for default wordlists if input is empty
-    if not wordlist_file:
-        for default in default_wordlists:
-            if os.path.isfile(default):
-                print(Fore.CYAN + f"[*] Using default wordlist: {default}" + Style.RESET_ALL)
-                wordlist_file = default
-                break
-        else:
-            print(Fore.RED + "[!] No valid wordlist found. Please provide a valid wordlist path." + Style.RESET_ALL)
-            sys.exit(1)
-
-    if not os.path.isfile(wordlist_file):
-        print(Fore.RED + "[!] Wordlist file does not exist." + Style.RESET_ALL)
-        sys.exit(1)
-
-    wordlist = [line.strip() for line in open(wordlist_file).readlines()]
-    num_threads = int(input(Fore.CYAN + "[*] Enter the number of threads: " + Style.RESET_ALL))
-    ua_file = input(Fore.CYAN + "[*] Enter the path to the user agent file (optional, press Enter to skip): " + Style.RESET_ALL)
-    proxy_file = input(Fore.CYAN + "[*] Enter the path to the proxy file (optional, press Enter to skip): " + Style.RESET_ALL)
-
-    user_agents = load_user_agents(ua_file) if ua_file else [None]
-    proxies = load_proxies(proxy_file) if proxy_file else [None]
-
-    queue = Queue()
-    for directory in wordlist:
-        queue.put(directory)
-
-    threads = []
-    found_urls = []
-
-    for i in range(num_threads):
-        user_agent = user_agents[i % len(user_agents)]
-        proxy = proxies[i % len(proxies)]
-        thread = threading.Thread(target=worker, args=(queue, base_url, user_agent, proxy, found_urls))
-        thread.start()
-        threads.append(thread)
-
-    for thread in threads:
-        thread.join()
-
-    # Save successful URLs to file
-    if found_urls:
-        with open('success_200_output.txt', 'w') as output_file:
-            for url in found_urls:
-                output_file.write(url + '\n')
-        print(Fore.CYAN + f"[*] Successfully found URLs with status code 200 saved to 'success_200_output.txt'." + Style.RESET_ALL)
+    api_key = input(Fore.CYAN + "[*] Enter your VirusTotal API key (leave empty to skip): " + Style.RESET_ALL)
+    
+    subdomain_file_name = base_url.split("://")[-1].replace("/", "_") + "_subdomains.txt"
+    
+    if api_key.strip() == "":
+        print(Fore.RED + "[!] No API key provided. Skipping subdomain gathering." + Style.RESET_ALL)
+        start_brute_force(base_url)
     else:
-        print(Fore.YELLOW + "[*] No URLs with status code 200 found." + Style.RESET_ALL)
+        gather_subdomains = input(Fore.CYAN + "[*] Do you want to gather subdomains from VirusTotal? (y/n): " + Style.RESET_ALL)
+        if gather_subdomains.lower() == 'y':
+            print(Fore.YELLOW + "[*] Gathering subdomains from VirusTotal, please wait..." + Style.RESET_ALL)
+            subdomains = fetch_subdomains_from_virustotal(base_url, api_key)
+            subdomain_count = len(subdomains)
 
-    print(Fore.CYAN + "[*] Finished scanning!" + Style.RESET_ALL)
+            # Write to file
+            with open(subdomain_file_name, 'w') as file:
+                for subdomain in subdomains:
+                    file.write(subdomain + '\n')
+
+            print(Fore.CYAN + f"[*] Found {subdomain_count} subdomains. Saved to {subdomain_file_name}" + Style.RESET_ALL)
+        
+        # Start brute force if subdomain gathering is complete or skipped
+        found_urls = start_brute_force(base_url)
+
+        # Display all found URLs
+        if found_urls:
+            print(Fore.CYAN + "[*] All found URLs:" + Style.RESET_ALL)
+            for url in found_urls:
+                print(Fore.GREEN + f"Found: {url}" + Style.RESET_ALL)
+        else:
+            print(Fore.YELLOW + "[*] No URLs found." + Style.RESET_ALL)
+
+def start_brute_force(base_url):
+    wordlist_path = input(Fore.CYAN + "[*] Enter the path to your wordlist file (press Enter to use default 'headshot.txt'): " + Style.RESET_ALL)
+    
+    # Set default wordlist path if input is empty
+    if not wordlist_path.strip():
+        wordlist_path = 'headshot.txt'
+    
+    num_threads = int(input(Fore.CYAN + "[*] Enter the number of threads (recommended: 10): " + Style.RESET_ALL) or 10)
+
+    try:
+        with open(wordlist_path, 'r') as f:
+            wordlist = [line.strip() for line in f.readlines()]
+    except FileNotFoundError:
+        print(Fore.RED + "[!] Wordlist file not found." + Style.RESET_ALL)
+        return []
+
+    print(Fore.YELLOW + "[*] Starting brute force attack..." + Style.RESET_ALL)
+
+    return brute_force(base_url, wordlist, num_threads)
 
 if __name__ == "__main__":
     main()
-
