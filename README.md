@@ -13,7 +13,7 @@ Welcome to **zBruter**! This project's mission is to help all penetration tester
 - ✅ **Feature 5:** All Success 200 HTTP Responses will be stored at **success_200_output.txt**
 
 ## 🖥️ Screenshot
-<img src="Screenshot from 2024-11-29 20-33-09.png" width="1000px">
+<img src="Screenshot.png" width="1000px">
 
 ## 🚀 Getting Started
 
